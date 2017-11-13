@@ -5,24 +5,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.ifchan.music.MainActivity">
+    tools:context="com.ifchan.music.MusicList">
 
     <android.support.v7.widget.Toolbar
-        android:id="@+id/toolbar"
+        android:id="@+id/toolbar_in_musicList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#7E528B8B"
-        app:subtitle="歌手"
-        app:subtitleTextColor="#7effffff"
-        app:title="歌名"
+        app:title="歌单"
         app:titleTextColor="#ffffff"
+        app:navigationIcon="@drawable/back"
         ></android.support.v7.widget.Toolbar>
-
-
-    <android.support.v4.view.ViewPager
-        android:id="@+id/viewpager"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-    </android.support.v4.view.ViewPager>
 
 </RelativeLayout>
