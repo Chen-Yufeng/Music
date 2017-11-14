@@ -28,7 +28,7 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
         android:layout_marginTop="15dp"
-        android:background="#ffffff"
+        android:background="#00000000"
         android:src="@mipmap/close"/>
 
 </RelativeLayout>

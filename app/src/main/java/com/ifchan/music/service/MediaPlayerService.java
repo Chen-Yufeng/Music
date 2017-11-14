@@ -49,7 +49,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
     private ArrayList<Music> mMusicList;
     private int position;
     //path to the audio file
-    private int resumePosition;
+    private int resumePosition = 0;
 
     //MediaSession
     private MediaSessionManager mediaSessionManager;

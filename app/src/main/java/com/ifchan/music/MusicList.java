@@ -20,6 +20,7 @@ public class MusicList extends AppCompatActivity {
     private Toolbar mToolbar;
     private ArrayList<Music> mMusicList;
     private MusicListAdapter musicListAdapter;
+    RemoveBroadcastReceiver receiver;
 
     @Override
 
@@ -33,14 +34,25 @@ public class MusicList extends AppCompatActivity {
         initBroadcastReceiver();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
+    }
+
     private void initBroadcastReceiver() {
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                int position = intent.getIntExtra(MusicListAdapter.REMOVE_POSITION, 0);
-                musicListAdapter.notifyItemRemoved(position);
-            }
-        }, new IntentFilter(MusicListAdapter.INTENT_TO_REMOVE_MUSIC));
+        IntentFilter intentFilter = new IntentFilter(MusicListAdapter.INTENT_TO_REMOVE_MUSIC);
+        receiver = new RemoveBroadcastReceiver();
+        registerReceiver(receiver,intentFilter);
+    }
+
+    private class RemoveBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int position = intent.getIntExtra(MusicListAdapter.REMOVE_POSITION, 0);
+            musicListAdapter.notifyItemRemoved(position);
+        }
     }
 
     private void receiveMusicList() {
