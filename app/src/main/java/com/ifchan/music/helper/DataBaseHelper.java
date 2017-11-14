@@ -5,4 +5,5 @@ package com.ifchan.music.helper;
  */
 
 public class DataBaseHelper {
+
 }

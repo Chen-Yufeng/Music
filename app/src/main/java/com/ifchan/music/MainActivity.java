@@ -12,11 +12,15 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 
 import com.ifchan.music.adapter.MusicListAdapter;
 import com.ifchan.music.entity.Music;
@@ -24,16 +28,22 @@ import com.ifchan.music.entity.Music;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.Manifest.permission.FACTORY_TEST;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static com.ifchan.music.adapter.MusicListAdapter.INTENT_PLAY_NEW;
+import static com.ifchan.music.adapter.MusicListAdapter.INTENT_POSITION;
+import static com.ifchan.music.adapter.MusicListAdapter.INTENT_TO_REMOVE_MUSIC;
 
 public class MainActivity extends AppCompatActivity implements ViewPager
         .OnPageChangeListener {
     public static final String INTENT_TO_MUSICLIST_ACTIVITY_MUSICLIST =
             "INTENT_TO_MUSICLIST_ACTIVITY_MUSICLIST";
+    public final static String INTENT_MEDIA = "MEDIA";
     private final String TAG = "@vir MainActivity";
     private ArrayList<Music> mMusicList = new ArrayList<>();
     private Toolbar mToolbar;
     ViewPager pager;
+    private ImageView mImageView;
     private List<View> viewContainer;
 
     @Override
@@ -45,6 +55,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         initToolbar();
         initViewPager();
         initBroadcastReceiver();
+        setPlayerListener();
+    }
+
+    private void setPlayerListener() {
+
     }
 
     private void getPermission() {
@@ -120,9 +135,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private void initViewPager() {
         LayoutInflater layoutInflater = getLayoutInflater().from(MainActivity.this);
+        View page1 = layoutInflater.inflate(R.layout.page1, null);
         View page2 = layoutInflater.inflate(R.layout.page2, null);
+        View page3 = layoutInflater.inflate(R.layout.page3, null);
+        mImageView = page2.findViewById(R.id.pointer);
         viewContainer = new ArrayList<>();
+        viewContainer.add(page1);
         viewContainer.add(page2);
+        viewContainer.add(page3);
         pager = findViewById(R.id.viewpager);
         pager.setOnPageChangeListener(this);
         pager.setAdapter(new PagerAdapter() {
@@ -148,12 +168,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 return view == object;
             }
         });
+        pager.setCurrentItem(2,false);
 
     }
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-
+        if (positionOffset == 0.0) {
+            if (position == 0) {
+                //动画会跳动
+                pager.setCurrentItem(1,false);
+            } else if (position == 2) {
+                pager.setCurrentItem(1,false);
+            }
+        }
     }
 
     @Override
@@ -163,7 +191,17 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     @Override
     public void onPageScrollStateChanged(int state) {
-
+//        Animation animation = AnimationUtils.loadAnimation(MainActivity.this, R.anim
+//                .pointer_anim);
+//        Animation animationReset = AnimationUtils.loadAnimation(MainActivity.this, R.anim
+//                .pointer_anim_reset);
+//        animation.setFillAfter(true);
+//        animationReset.setFillAfter(true);
+//        if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+//            mImageView.startAnimation(animation);
+//        } else if (state == ViewPager.SCROLL_STATE_IDLE) {
+//            mImageView.startAnimation(animationReset);
+//        }
     }
 
     private static final int READ_REQUEST_CODE = 42;
@@ -208,6 +246,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 mMusicList.remove(position);
                 // TODO: 11/14/17 stop play this music 
             }
-        }, new IntentFilter(MusicListAdapter.INTENT_TO_REMOVE_MUSIC));
+        }, new IntentFilter(INTENT_TO_REMOVE_MUSIC));
+        registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                int playNewPosition = intent.getIntExtra(INTENT_POSITION, 0);
+            }
+        },new IntentFilter(INTENT_PLAY_NEW));
     }
 }

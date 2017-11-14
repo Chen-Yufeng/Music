@@ -27,4 +27,43 @@
         android:layout_height="wrap_content">
     </android.support.v4.view.ViewPager>
 
+    <android.support.v7.widget.AppCompatSeekBar
+        android:id="@+id/seek_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="10dp"
+        android:layout_above="@id/image_button_play_or_stop"/>
+
+    <ImageButton
+        android:id="@+id/image_button_play_or_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:background="#00000000"
+        android:layout_marginBottom="30dp"
+        android:src="@drawable/play"/>
+
+    <ImageButton
+        android:id="@+id/image_button_previous"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@id/image_button_play_or_stop"
+        android:paddingRight="20dp"
+        android:background="#00000000"
+        android:layout_marginBottom="30dp"
+        android:src="@drawable/previous"/>
+
+    <ImageButton
+        android:id="@+id/image_button_next"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@id/image_button_play_or_stop"
+        android:paddingLeft="20dp"
+        android:background="#00000000"
+        android:layout_marginBottom="30dp"
+        android:src="@drawable/next"/>
+
 </RelativeLayout>

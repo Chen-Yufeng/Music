@@ -6,7 +6,7 @@
 
 
     <ImageView
-        android:id="@+id/pointer"
+        android:id="@+id/imageView"
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:layout_alignEnd="@+id/disk_album_pic"
