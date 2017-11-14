@@ -5,16 +5,23 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.ifchan.music.MusicList">
+    tools:context="com.ifchan.music.MusicList"
+    android:background="@color/basic_background">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar_in_musicList"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#7E528B8B"
+        android:background="@color/basic_background"
         app:title="歌单"
         app:titleTextColor="#ffffff"
         app:navigationIcon="@drawable/back"
         ></android.support.v7.widget.Toolbar>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/music_list_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar_in_musicList"></android.support.v7.widget.RecyclerView>
 
 </RelativeLayout>

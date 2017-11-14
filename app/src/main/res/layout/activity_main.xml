@@ -5,13 +5,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.ifchan.music.MainActivity">
+    tools:context="com.ifchan.music.MainActivity"
+    android:background="@color/basic_background">
 
     <android.support.v7.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#7E528B8B"
+        android:layout_height="?attr/actionBarSize"
+        android:elevation="4dp"
+        android:background="@color/basic_background"
         app:subtitle="歌手"
         app:subtitleTextColor="#7effffff"
         app:title="歌名"
