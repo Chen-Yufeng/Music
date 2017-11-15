@@ -17,4 +17,11 @@
         android:title="addFile"
         app:showAsAction="ifRoom"/>
 
+    <item
+        android:id="@+id/clear_data_base"
+        android:icon="@mipmap/close"
+        android:orderInCategory="80"
+        android:title="clear"
+        app:showAsAction="ifRoom"/>
+
 </menu>

@@ -97,6 +97,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
             @Override
             public void onReceive(Context context, Intent intent) {
                 stopMedia();
+                mMusicList = (ArrayList<Music>) intent.getSerializableExtra(MainActivity.INTENT_MEDIA);
                 position = intent.getIntExtra("position", 0);
                 initMediaPlayer();
             }

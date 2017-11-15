@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -31,6 +33,7 @@ import android.widget.Toast;
 
 import com.ifchan.music.adapter.MusicListAdapter;
 import com.ifchan.music.entity.Music;
+import com.ifchan.music.helper.DataBaseHelper;
 import com.ifchan.music.service.MediaPlayerService;
 
 import java.util.ArrayList;
@@ -52,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     public final static String INTENT_MEDIA = "MEDIA";
     private final String TAG = "@vir MainActivity";
     private boolean isPlaying = false;
+    private DataBaseHelper mDataBaseHelper;
+    private SQLiteDatabase db;
     private ArrayList<Music> mMusicList = new ArrayList<>();
     private Toolbar mToolbar;
     ViewPager pager;
@@ -82,6 +87,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         setContentView(R.layout.activity_main);
 
         getPermission();
+        initDataBase();
+        loadFromDataBase();
         initToolbar();
         initBasicItems();
         initViewPager();
@@ -89,6 +96,26 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         setPlayerListener();
 
 //        test();
+    }
+
+
+    private void initDataBase() {
+        mDataBaseHelper = DataBaseHelper.getInstance(MainActivity.this);
+        db = mDataBaseHelper.getWritableDatabase();
+    }
+
+    private void loadFromDataBase() {
+        Cursor cursor = db.query("Musics", null, null, null, null, null, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String name = cursor.getString(cursor.getColumnIndex("name"));
+                String singer = cursor.getString(cursor.getColumnIndex("singer"));
+                String path = cursor.getString(cursor.getColumnIndex("path"));
+                Music music = new Music(name, singer, path);
+                mMusicList.add(music);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
     }
 
     private void initBasicItems() {
@@ -211,6 +238,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             case R.id.menu_add_music_from_file:
                 // TODO: 11/14/17 complete it
                 performFileSearch();
+                break;
+            case R.id.clear_data_base:
+                mDataBaseHelper.removeAllColumns(db);
                 break;
         }
 
@@ -364,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                     music.setPath(path);
                     music.setSinger("singer");
                     mMusicList.add(music);
+                    mDataBaseHelper.addMusic(mMusicList.size(), music, db);
                 }
                 break;
         }
@@ -376,7 +407,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             public void onReceive(Context context, Intent intent) {
                 int position = intent.getIntExtra(MusicListAdapter.REMOVE_POSITION, 0);
                 mMusicList.remove(position);
-                // TODO: 11/14/17 stop play this music 
+                mDataBaseHelper.delMusic(position + 1, db);
+                // TODO: 11/14/17 stop play this music
             }
         }, new IntentFilter(INTENT_TO_REMOVE_MUSIC));
         registerReceiver(new BroadcastReceiver() {
@@ -405,6 +437,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        db.close();
         if (serviceBound) {
             unbindService(serviceConnection);
             player.stopSelf();
