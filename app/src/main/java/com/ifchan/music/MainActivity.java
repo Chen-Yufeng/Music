@@ -47,6 +47,7 @@ import static com.ifchan.music.service.MediaPlayerService.ACTION_NEXT;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PAUSE;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PLAY;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PREVIOUS;
+import static com.ifchan.music.service.MediaPlayerService.MODE_INITIALIZE_OR_PLAY_NEW;
 
 public class MainActivity extends AppCompatActivity implements ViewPager
         .OnPageChangeListener {
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     public final static String INTENT_MEDIA = "MEDIA";
     private final String TAG = "@vir MainActivity";
     private boolean isPlaying = false;
+    private int nowPosition;
     private DataBaseHelper mDataBaseHelper;
     private SQLiteDatabase db;
     private ArrayList<Music> mMusicList = new ArrayList<>();
@@ -139,10 +141,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         }).start();
     }
 
-    private void test() {
-        mMusicList.add(new Music("a.mp3", "eason", "/sdcard/Download/a.mp3"));
-        playMusic(0);
-    }
 
     private void setPlayerListener() {
         ImageButton imageButtonPrevious = findViewById(R.id.image_button_previous);
@@ -151,39 +149,63 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         imageButtonPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (serviceBound) {
-                    connectSeekBarAndHandle();
-                    player.skipToPrevious();
-                    isPlaying = true;
-                }
+                playPrevious();
             }
         });
         imageButtonPlayOrStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (serviceBound) {
-                    player.pauseOrPlay();
-                    if (isPlaying) {
-                        isPlaying = !isPlaying;
-                        imageButtonPlayOrStop.setImageResource(R.drawable.play);
-                    } else {
-                        isPlaying = !isPlaying;
-                        connectSeekBarAndHandle();
-                        imageButtonPlayOrStop.setImageResource(R.drawable.stop);
-                    }
-                }
+                playOrStop();
             }
         });
         imageButtonNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (serviceBound) {
-                    connectSeekBarAndHandle();
-                    player.skipToNext();
-                    isPlaying = true;
-                }
+               playNext();
             }
         });
+    }
+
+    private void playPrevious() {
+        if (serviceBound) {
+            connectSeekBarAndHandle();
+            player.skipToPrevious();
+            isPlaying = true;
+            if (nowPosition == 0) {
+                nowPosition = mMusicList.size() - 1;
+            } else {
+                nowPosition--;
+            }
+            renewToolBar(nowPosition);
+        }
+    }
+
+    private void playNext() {
+        if (serviceBound) {
+            connectSeekBarAndHandle();
+            player.skipToNext();
+            isPlaying = true;
+            if (nowPosition == mMusicList.size() - 1) {
+                nowPosition = 0;
+            } else {
+                nowPosition++;
+            }
+            renewToolBar(nowPosition);
+        }
+    }
+
+    private void playOrStop() {
+        if (serviceBound) {
+            player.pauseOrPlay();
+            if (isPlaying) {
+                isPlaying = !isPlaying;
+                imageButtonPlayOrStop.setImageResource(R.drawable.play);
+            } else {
+                isPlaying = !isPlaying;
+                connectSeekBarAndHandle();
+                imageButtonPlayOrStop.setImageResource(R.drawable.stop);
+            }
+        }
     }
 
     private void getPermission() {
@@ -313,9 +335,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     @Override
     public void onPageSelected(int position) {
         if (position == 0) {
-            sendBroadcast(playbackAction(3));
+//            sendBroadcast(playbackAction(3));
+            playPrevious();
         } else if (position == 2) {
-            sendBroadcast(playbackAction(2));
+//            sendBroadcast(playbackAction(2));
+            playNext();
         }
 
     }
@@ -395,6 +419,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                     music.setSinger("singer");
                     mMusicList.add(music);
                     mDataBaseHelper.addMusic(mMusicList.size(), music, db);
+                    syncMusicList();
                 }
                 break;
         }
@@ -407,6 +432,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             public void onReceive(Context context, Intent intent) {
                 int position = intent.getIntExtra(MusicListAdapter.REMOVE_POSITION, 0);
                 mMusicList.remove(position);
+                syncMusicList();
+                if (position <= nowPosition && position != 0) {
+                    nowPosition--;
+                }
                 mDataBaseHelper.delMusic(position + 1, db);
                 // TODO: 11/14/17 stop play this music
             }
@@ -414,13 +443,17 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                int playNewPosition = intent.getIntExtra(INTENT_POSITION, 0);
-                playMusic(playNewPosition);
-//                connectSeekBarAndHandle();
+                nowPosition = intent.getIntExtra(INTENT_POSITION, 0);
+                playMusic(nowPosition);
+                renewToolBar(nowPosition);
             }
         }, new IntentFilter(INTENT_PLAY_NEW));
     }
 
+    private void renewToolBar(int position) {
+        mToolbar.setTitle(mMusicList.get(position).getName());
+        mToolbar.setSubtitle(mMusicList.get(position).getSinger());
+    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -471,8 +504,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         } else {
             //Service is active
             //Send media with BroadcastReceiver
-            Intent playNewIntent = new Intent(MediaPlayerService.PLAY_NEW);
+            Intent playNewIntent = new Intent(MediaPlayerService.INITIALIZE_OR_PLAY_NEW);
             playNewIntent.putExtra(INTENT_MEDIA, mMusicList);
+            playNewIntent.putExtra(MODE_INITIALIZE_OR_PLAY_NEW,2);
             playNewIntent.putExtra("position", position);
             sendBroadcast(playNewIntent);
             // TODO: 11/15/17 may need call  connectSeekBarAndHandle()
@@ -493,4 +527,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 //        mAudioInfo.setTitle(lrcHelper.getTitle());
     }
 
+    private void syncMusicList() {
+        Intent playNewIntent = new Intent(MediaPlayerService.INITIALIZE_OR_PLAY_NEW);
+        playNewIntent.putExtra(INTENT_MEDIA, mMusicList);
+        playNewIntent.putExtra(MODE_INITIALIZE_OR_PLAY_NEW,1);
+        sendBroadcast(playNewIntent);
+    }
 }

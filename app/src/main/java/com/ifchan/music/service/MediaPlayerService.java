@@ -35,6 +35,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
         MediaPlayer.OnInfoListener, MediaPlayer.OnBufferingUpdateListener,
         AudioManager.OnAudioFocusChangeListener {
 
+    public static final String MODE_INITIALIZE_OR_PLAY_NEW = "MODE_INITIALIZE_OR_PLAY_NEW";
     private final String TAG = "@vir MediaPlayerService";
     public static final String ACTION_PLAY = "com.valdioveliu.valdio.audioplayer.ACTION_PLAY";
     public static final String ACTION_PAUSE = "com.valdioveliu.valdio.audioplayer.ACTION_PAUSE";
@@ -42,7 +43,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
             ".ACTION_PREVIOUS";
     public static final String ACTION_NEXT = "com.valdioveliu.valdio.audioplayer.ACTION_NEXT";
     public static final String ACTION_STOP = "com.valdioveliu.valdio.audioplayer.ACTION_STOP";
-    public final static String PLAY_NEW = "PLAY_NEW";
+    public final static String INITIALIZE_OR_PLAY_NEW = "INITIALIZE_OR_PLAY_NEW";
     private final IBinder iBinder = new LocalBinder();
     private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
@@ -91,15 +92,22 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
     @Override
     public void onCreate() {
         super.onCreate();
-        IntentFilter intentFilter = new IntentFilter(PLAY_NEW);
+        IntentFilter intentFilter = new IntentFilter(INITIALIZE_OR_PLAY_NEW);
 
         registerReceiver(new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                stopMedia();
-                mMusicList = (ArrayList<Music>) intent.getSerializableExtra(MainActivity.INTENT_MEDIA);
-                position = intent.getIntExtra("position", 0);
-                initMediaPlayer();
+                mMusicList = (ArrayList<Music>) intent.getSerializableExtra(MainActivity
+                        .INTENT_MEDIA);
+                switch (intent.getIntExtra(MODE_INITIALIZE_OR_PLAY_NEW, 0)) {
+                    case 1:
+                        break;
+                    case 2:
+                        position = intent.getIntExtra("position", 0);
+                        stopMedia();
+                        initMediaPlayer();
+                        break;
+                }
             }
         }, intentFilter);
 // TODO: 11/3/17 完成他
