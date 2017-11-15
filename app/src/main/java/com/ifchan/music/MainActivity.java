@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 if (serviceBound) {
                     connectSeekBarAndHandle();
                     player.skipToPrevious();
+                    isPlaying = true;
                 }
             }
         });
@@ -152,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 if (serviceBound) {
                     connectSeekBarAndHandle();
                     player.skipToNext();
+                    isPlaying = true;
                 }
             }
         });
@@ -263,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 return view == object;
             }
         });
-        pager.setCurrentItem(2, false);
+        pager.setCurrentItem(1, false);
 
     }
 
