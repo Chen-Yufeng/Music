@@ -434,7 +434,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
         if (position == mMusicList.size() - 1) {
             position = 0;
         } else {
-            position += 1;
+            position++;
         }
         stopMedia();
         //reset mediaPlayer

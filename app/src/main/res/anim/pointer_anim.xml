@@ -3,10 +3,10 @@
 
     <rotate
         android:drawable="@drawable/pointer"
-        android:fromDegrees="30"
-        android:toDegrees="0"
-        android:pivotX="10%"
-        android:pivotY="0%"
+        android:fromDegrees="0"
+        android:toDegrees="30"
+        android:pivotX="9%"
+        android:pivotY="5%"
         android:duration="1000"
         >
 

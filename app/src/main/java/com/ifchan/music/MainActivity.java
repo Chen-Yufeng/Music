@@ -30,6 +30,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -89,6 +91,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     private int playingFlag = 0;
     private LrcRecyclerViewBoarcCastReceiver lrcRecyclerViewBoarcCastReceiver;
     private RenewLrcBroadcastReceiver renewLrcBroadcastReceiver;
+
+    private Animation animation_off_to_on;
+    private Animation animation_on_to_off;
+
+
     private Handler mHandler = new Handler(Looper.getMainLooper()) {
         private long time = System.currentTimeMillis();
 
@@ -114,10 +121,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         initToolbar();
         initBasicItems();
         initViewPager();
+        initAnim();
         initBroadcastReceiver();
         setPlayerListener();
         setSeekBar();
         setRecyclerView();
+    }
+
+    private void initAnim() {
+        animation_off_to_on = AnimationUtils.loadAnimation(MainActivity.this, R.anim
+                .pointer_anim);
+        animation_on_to_off = AnimationUtils.loadAnimation(MainActivity.this, R
+                .anim.pointer_anim_reset);
+        animation_off_to_on.setFillAfter(true);
+        animation_on_to_off.setFillAfter(true);
     }
 
     private void setRecyclerView() {
@@ -127,13 +144,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             mLrcLineList = originalLrcList;
             lrcListAdapter.setLrcLineList(mLrcLineList);
         } else {
-            lrcListAdapter.notifyItemRangeRemoved(0, mLrcLineList.size());
             lrcListAdapter.setLrcLineList(mLrcLineList);
             lrcListAdapter.notifyItemRangeInserted(0, mLrcLineList.size());
         }
     }
 
     private void setLrcLineList() {
+        lrcListAdapter.notifyItemRangeRemoved(0, mLrcLineList.size());
         mLrcLineList = new ArrayList<>();
         LrcHelper lrcHelper = new LrcHelper();
         Music music = mMusicList.get(nowPosition);
@@ -222,7 +239,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         imageButtonPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                playPrevious();
+//                playPrevious();
+                pager.setCurrentItem(0);
             }
         });
         imageButtonPlayOrStop.setOnClickListener(new View.OnClickListener() {
@@ -234,7 +252,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         imageButtonNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                playNext();
+//                playNext();
+                pager.setCurrentItem(2);
             }
         });
         imageButtonPlayMode.setOnClickListener(new View.OnClickListener() {
@@ -297,9 +316,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             player.pauseOrPlay();
             if (isPlaying) {
                 isPlaying = !isPlaying;
+                mPointer.startAnimation(animation_on_to_off);
                 imageButtonPlayOrStop.setImageResource(R.drawable.play);
             } else {
                 isPlaying = !isPlaying;
+                mPointer.startAnimation(animation_off_to_on);
                 connectSeekBarAndHandle();
                 imageButtonPlayOrStop.setImageResource(R.drawable.stop);
             }
@@ -521,11 +542,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 //                .pointer_anim_reset);
 //        animation.setFillAfter(true);
 //        animationReset.setFillAfter(true);
-//        if (state == ViewPager.SCROLL_STATE_DRAGGING) {
-//            mPointer.startAnimation(animation);
-//        } else if (state == ViewPager.SCROLL_STATE_IDLE) {
-//            mPointer.startAnimation(animationReset);
-//        }
+        if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+            mPointer.startAnimation(animation_on_to_off);
+        } else if (state == ViewPager.SCROLL_STATE_IDLE) {
+            mPointer.startAnimation(animation_off_to_on);
+        }
     }
 
     private static final int READ_REQUEST_CODE = 42;
@@ -687,6 +708,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             // TODO: 11/15/17 may need call  connectSeekBarAndHandle()
         }
         imageButtonPlayOrStop.setImageResource(R.drawable.stop);
+        if (!isPlaying) {
+            mPointer.startAnimation(animation_off_to_on);
+        }
         isPlaying = true;
         setLrcLineList();
         setRecyclerView();
