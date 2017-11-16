@@ -36,14 +36,14 @@ public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerView
         View view = LayoutInflater.from(mContext).inflate(R.layout.lrc_item, parent
                 , false);
         final ViewHolder holder = new ViewHolder(view);
-//        holder.lrcTextView.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(INTENT_CLICK_POSITION);
-//                intent.putExtra(INTENT_CLICK_POSITION_VALUE,holder.getAdapterPosition());
-//                mContext.sendBroadcast(intent);
-//            }
-//        });
+        holder.lrcTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(INTENT_CLICK_POSITION);
+                intent.putExtra(INTENT_CLICK_POSITION_VALUE,holder.getAdapterPosition());
+                mContext.sendBroadcast(intent);
+            }
+        });
         return holder;
     }
 

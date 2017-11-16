@@ -9,6 +9,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static com.ifchan.music.adapter.LrcRecyclerViewAdapter.INTENT_CLICK_POSITION;
 import static com.ifchan.music.adapter.LrcRecyclerViewAdapter.INTENT_CLICK_POSITION_VALUE;
 import static com.ifchan.music.adapter.MusicListAdapter.INTENT_PLAY_NEW;
 import static com.ifchan.music.adapter.MusicListAdapter.INTENT_POSITION;
@@ -55,6 +57,7 @@ import static com.ifchan.music.service.MediaPlayerService.ACTION_NEXT;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PAUSE;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PLAY;
 import static com.ifchan.music.service.MediaPlayerService.ACTION_PREVIOUS;
+import static com.ifchan.music.service.MediaPlayerService.INTENT_RENEW_MAIN_ACTIVITY_LRC;
 import static com.ifchan.music.service.MediaPlayerService.MODE_INITIALIZE_OR_PLAY_NEW;
 
 public class MainActivity extends AppCompatActivity implements ViewPager
@@ -83,6 +86,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private boolean serviceBound = false;
     private MediaPlayerService player;
+    private int playingFlag = 0;
+    private LrcRecyclerViewBoarcCastReceiver lrcRecyclerViewBoarcCastReceiver;
+    private RenewLrcBroadcastReceiver renewLrcBroadcastReceiver;
     private Handler mHandler = new Handler(Looper.getMainLooper()) {
         private long time = System.currentTimeMillis();
 
@@ -118,9 +124,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         if (mLrcLineList == null) {
             originalLrcList = new ArrayList<>();
             originalLrcList.add(new LrcLine(0, "无歌词"));
-            lrcListAdapter.setLrcLineList(originalLrcList);
-        } else {
+            mLrcLineList = originalLrcList;
             lrcListAdapter.setLrcLineList(mLrcLineList);
+        } else {
+            lrcListAdapter.notifyItemRangeRemoved(0, mLrcLineList.size());
+            lrcListAdapter.setLrcLineList(mLrcLineList);
+            lrcListAdapter.notifyItemRangeInserted(0, mLrcLineList.size());
         }
     }
 
@@ -209,6 +218,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         ImageButton imageButtonPrevious = findViewById(R.id.image_button_previous);
         imageButtonPlayOrStop = findViewById(R.id.image_button_play_or_stop);
         ImageButton imageButtonNext = findViewById(R.id.image_button_next);
+        final ImageButton imageButtonPlayMode = findViewById(R.id.play_mode_pic);
         imageButtonPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -227,6 +237,27 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 playNext();
             }
         });
+        imageButtonPlayMode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switch (playingFlag) {
+                    case 0:
+                        playingFlag = 1;
+                        player.setPlayMode(1);
+                        imageButtonPlayMode.setImageResource(R.drawable.list_random);
+                        break;
+                    case 1:
+                        playingFlag = 2;
+                        player.setPlayMode(2);
+                        imageButtonPlayMode.setImageResource(R.drawable.list_once);
+                        break;
+                    case 2:
+                        playingFlag = 0;
+                        player.setPlayMode(0);
+                        imageButtonPlayMode.setImageResource(R.drawable.list_recycle);
+                }
+            }
+        });
     }
 
     private void playPrevious() {
@@ -240,6 +271,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 nowPosition--;
             }
             renewToolBar(nowPosition);
+            setLrcLineList();
+            setRecyclerView();
         }
     }
 
@@ -254,6 +287,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 nowPosition++;
             }
             renewToolBar(nowPosition);
+            setLrcLineList();
+            setRecyclerView();
         }
     }
 
@@ -376,14 +411,21 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         lrcListAdapter = new LrcRecyclerViewAdapter(MainActivity.this, originalLrcList);
         lrcRecyclerView.setAdapter(lrcListAdapter);
         // TODO: 11/16/17 handle conflict!
-        lrcRecyclerView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mCardView.setVisibility(View.VISIBLE);
-                mPointer.setVisibility(View.VISIBLE);
-                lrcRecyclerView.setVisibility(View.GONE);
-            }
-        });
+//        lrcRecyclerView.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                if (lrcRecyclerView.getVisibility() == View.INVISIBLE) {
+//                    lrcRecyclerView.setVisibility(View.VISIBLE);
+//                    mCardView.setVisibility(View.GONE);
+//                    mPointer.clearAnimation();
+//                    mPointer.setVisibility(View.INVISIBLE);
+//                } else {
+//                    lrcRecyclerView.setVisibility(View.INVISIBLE);
+//                    mCardView.setVisibility(View.VISIBLE);
+//                    mPointer.setVisibility(View.VISIBLE);
+//                }
+//            }
+//        });
         viewContainer = new ArrayList<>();
         viewContainer.add(page1);
         viewContainer.add(page2);
@@ -544,16 +586,42 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 renewToolBar(nowPosition);
             }
         }, new IntentFilter(INTENT_PLAY_NEW));
+
+        lrcRecyclerViewBoarcCastReceiver = new
+                LrcRecyclerViewBoarcCastReceiver();
+        IntentFilter intentFilterForLrcItem = new IntentFilter(INTENT_CLICK_POSITION);
+        registerReceiver(lrcRecyclerViewBoarcCastReceiver, intentFilterForLrcItem);
+
+        IntentFilter intentFilterForRenewLrc = new IntentFilter(INTENT_RENEW_MAIN_ACTIVITY_LRC);
+        renewLrcBroadcastReceiver = new RenewLrcBroadcastReceiver();
+        registerReceiver(renewLrcBroadcastReceiver, intentFilterForRenewLrc);
     }
 
     class LrcRecyclerViewBoarcCastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int cliclPosition = intent.getIntExtra(INTENT_CLICK_POSITION_VALUE,0);
-
+//            int cliclPosition = intent.getIntExtra(INTENT_CLICK_POSITION_VALUE,0);
+            if (lrcRecyclerView.getVisibility() == View.INVISIBLE) {
+                lrcRecyclerView.setVisibility(View.VISIBLE);
+                mCardView.setVisibility(View.GONE);
+                mPointer.clearAnimation();
+                mPointer.setVisibility(View.INVISIBLE);
+            } else {
+                lrcRecyclerView.setVisibility(View.INVISIBLE);
+                mCardView.setVisibility(View.VISIBLE);
+                mPointer.setVisibility(View.VISIBLE);
+            }
         }
     }
 
+    class RenewLrcBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            setLrcLineList();
+            setRecyclerView();
+        }
+    }
 
     private void renewToolBar(int position) {
         mToolbar.setTitle(mMusicList.get(position).getName());
@@ -580,6 +648,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             unbindService(serviceConnection);
             player.stopSelf();
         }
+        unregisterReceiver(lrcRecyclerViewBoarcCastReceiver);
+        unregisterReceiver(renewLrcBroadcastReceiver);
     }
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
@@ -589,8 +659,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             player = binder.getService();
             serviceBound = true;
             connectSeekBarAndHandle();
-            Toast.makeText(MainActivity.this, "Service Bound", Toast.LENGTH_SHORT)
-                    .show();
+//            Toast.makeText(MainActivity.this, "Service Bound", Toast.LENGTH_SHORT)
+//                    .show();
         }
 
         @Override

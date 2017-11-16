@@ -36,6 +36,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
         AudioManager.OnAudioFocusChangeListener {
 
     public static final String MODE_INITIALIZE_OR_PLAY_NEW = "MODE_INITIALIZE_OR_PLAY_NEW";
+    public static final String INTENT_RENEW_MAIN_ACTIVITY_LRC = "INTENT_RENEW_MAIN_ACTIVITY_LRC";
     private final String TAG = "@vir MediaPlayerService";
     public static final String ACTION_PLAY = "com.valdioveliu.valdio.audioplayer.ACTION_PLAY";
     public static final String ACTION_PAUSE = "com.valdioveliu.valdio.audioplayer.ACTION_PAUSE";
@@ -60,6 +61,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
     //AudioPlayer notification ID
     private static final int NOTIFICATION_ID = 101;
     boolean isPaused = false;
+    private int playingFlag = 0;
 
     public enum PlaybackStatus {
         PLAYING,
@@ -186,7 +188,26 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
     @Override
     public void onCompletion(MediaPlayer mp) {
         stopMedia();
+        switch (playingFlag) {
+            case 0:
+                skipToNext();
+                break;
+            case 1:
+                playByRandom();
+                break;
+            case 2:
+                playByList();
+                break;
+            default:
+                break;
 //        stopSelf();
+        }
+        Intent intent = new Intent(INTENT_RENEW_MAIN_ACTIVITY_LRC);
+        sendBroadcast(intent);
+    }
+
+    public void setPlayMode(int mode) {
+        playingFlag = mode;
     }
 
     @Override
