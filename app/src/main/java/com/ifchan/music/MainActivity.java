@@ -543,9 +543,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 //        animation.setFillAfter(true);
 //        animationReset.setFillAfter(true);
         if (state == ViewPager.SCROLL_STATE_DRAGGING) {
-            mPointer.startAnimation(animation_on_to_off);
+            if (isPlaying) {
+                mPointer.startAnimation(animation_on_to_off);
+            }
         } else if (state == ViewPager.SCROLL_STATE_IDLE) {
-            mPointer.startAnimation(animation_off_to_on);
+            if (isPlaying) {
+                mPointer.startAnimation(animation_off_to_on);
+            }
         }
     }
 
