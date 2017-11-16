@@ -9,7 +9,6 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -35,7 +34,6 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
-import android.widget.Toast;
 
 import com.ifchan.music.adapter.LrcRecyclerViewAdapter;
 import com.ifchan.music.adapter.MusicListAdapter;
@@ -51,7 +49,6 @@ import java.util.List;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static com.ifchan.music.adapter.LrcRecyclerViewAdapter.INTENT_CLICK_POSITION;
-import static com.ifchan.music.adapter.LrcRecyclerViewAdapter.INTENT_CLICK_POSITION_VALUE;
 import static com.ifchan.music.adapter.MusicListAdapter.INTENT_PLAY_NEW;
 import static com.ifchan.music.adapter.MusicListAdapter.INTENT_POSITION;
 import static com.ifchan.music.adapter.MusicListAdapter.INTENT_TO_REMOVE_MUSIC;
@@ -70,6 +67,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     private final String TAG = "@vir MainActivity";
     private boolean isPlaying = false;
     private int nowPosition;
+    private int nowLrcPosition = 0;
+    private long lrcTime = 0;
     private DataBaseHelper mDataBaseHelper;
     private SQLiteDatabase db;
     private ArrayList<Music> mMusicList = new ArrayList<>();
@@ -80,7 +79,9 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     private ImageView mPointer;
     private ImageView mDisk;
     private RecyclerView lrcRecyclerView;
+    private LinearLayoutManager mLinearLayoutManager;
     private LrcRecyclerViewAdapter lrcListAdapter;
+    private boolean autoMove = false;
     ViewPager pager;
     private SeekBar mSeekBar;
     ImageButton imageButtonPlayOrStop;
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     private boolean serviceBound = false;
     private MediaPlayerService player;
     private int playingFlag = 0;
-    private LrcRecyclerViewBoarcCastReceiver lrcRecyclerViewBoarcCastReceiver;
+    private LrcRecyclerViewBroadCastReceiver mLrcRecyclerViewBroadCastReceiver;
     private RenewLrcBroadcastReceiver renewLrcBroadcastReceiver;
 
     private Animation animation_off_to_on;
@@ -101,11 +102,27 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
         @Override
         public void handleMessage(Message msg) {
-            Log.d(TAG, "handleMessage: msg.what=" + msg.what);
             if (System.currentTimeMillis() >= time + 1000) {
                 time = System.currentTimeMillis();
                 int progress = (int) (msg.what * 10000.0 / player.getDurationInMilliseconds());
+                lrcTime = msg.what;
                 mSeekBar.setProgress(progress);
+                if (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
+                    if (nowLrcPosition < mLrcLineList.size() - 1) {
+                        while (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
+                            nowLrcPosition++;
+                        }
+                        nowLrcPosition--;
+                    }
+                } else if (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
+                    if (nowLrcPosition > 0) {
+                        while (nowLrcPosition > 0 && mLrcLineList.get(nowLrcPosition)
+                                .getMillisecond() > lrcTime) {
+                            nowLrcPosition--;
+                        }
+                    }
+                }
+                scrollToCenter(nowLrcPosition);
             }
         }
     };
@@ -316,11 +333,15 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             player.pauseOrPlay();
             if (isPlaying) {
                 isPlaying = !isPlaying;
-                mPointer.startAnimation(animation_on_to_off);
+                if (mPointer.getVisibility() == View.VISIBLE) {
+                    mPointer.startAnimation(animation_on_to_off);
+                }
                 imageButtonPlayOrStop.setImageResource(R.drawable.play);
             } else {
                 isPlaying = !isPlaying;
-                mPointer.startAnimation(animation_off_to_on);
+                if (mPointer.getVisibility() == View.VISIBLE) {
+                    mPointer.startAnimation(animation_off_to_on);
+                }
                 connectSeekBarAndHandle();
                 imageButtonPlayOrStop.setImageResource(R.drawable.stop);
             }
@@ -408,12 +429,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         View page3 = layoutInflater.inflate(R.layout.page3, null);
         mPointer = page2.findViewById(R.id.pointer);
         lrcRecyclerView = page2.findViewById(R.id.lrc_recycler_view);
+        lrcRecyclerView.addOnScrollListener(new RecyclerViewListener());
         mDisk = page2.findViewById(R.id.disk);
         mCardView = page2.findViewById(R.id.disk_album_pic);
         lrcRecyclerView.setVisibility(View.INVISIBLE);
         mCardView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                mPointer.clearAnimation();
                 if (lrcRecyclerView.getVisibility() == View.INVISIBLE) {
                     lrcRecyclerView.setVisibility(View.VISIBLE);
                     mCardView.setVisibility(View.GONE);
@@ -427,8 +450,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             }
         });
 
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
-        lrcRecyclerView.setLayoutManager(linearLayoutManager);
+        mLinearLayoutManager = new LinearLayoutManager(this);
+        lrcRecyclerView.setLayoutManager(mLinearLayoutManager);
         lrcListAdapter = new LrcRecyclerViewAdapter(MainActivity.this, originalLrcList);
         lrcRecyclerView.setAdapter(lrcListAdapter);
         // TODO: 11/16/17 handle conflict!
@@ -542,13 +565,15 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 //                .pointer_anim_reset);
 //        animation.setFillAfter(true);
 //        animationReset.setFillAfter(true);
-        if (state == ViewPager.SCROLL_STATE_DRAGGING) {
-            if (isPlaying) {
-                mPointer.startAnimation(animation_on_to_off);
-            }
-        } else if (state == ViewPager.SCROLL_STATE_IDLE) {
-            if (isPlaying) {
-                mPointer.startAnimation(animation_off_to_on);
+        if (mPointer.getVisibility() == View.VISIBLE) {
+            if (state == ViewPager.SCROLL_STATE_DRAGGING) {
+                if (isPlaying) {
+                    mPointer.startAnimation(animation_on_to_off);
+                }
+            } else if (state == ViewPager.SCROLL_STATE_IDLE) {
+                if (isPlaying) {
+                    mPointer.startAnimation(animation_off_to_on);
+                }
             }
         }
     }
@@ -612,20 +637,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             }
         }, new IntentFilter(INTENT_PLAY_NEW));
 
-        lrcRecyclerViewBoarcCastReceiver = new
-                LrcRecyclerViewBoarcCastReceiver();
+        mLrcRecyclerViewBroadCastReceiver = new
+                LrcRecyclerViewBroadCastReceiver();
         IntentFilter intentFilterForLrcItem = new IntentFilter(INTENT_CLICK_POSITION);
-        registerReceiver(lrcRecyclerViewBoarcCastReceiver, intentFilterForLrcItem);
+        registerReceiver(mLrcRecyclerViewBroadCastReceiver, intentFilterForLrcItem);
 
         IntentFilter intentFilterForRenewLrc = new IntentFilter(INTENT_RENEW_MAIN_ACTIVITY_LRC);
         renewLrcBroadcastReceiver = new RenewLrcBroadcastReceiver();
         registerReceiver(renewLrcBroadcastReceiver, intentFilterForRenewLrc);
     }
 
-    class LrcRecyclerViewBoarcCastReceiver extends BroadcastReceiver {
+    class LrcRecyclerViewBroadCastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-//            int cliclPosition = intent.getIntExtra(INTENT_CLICK_POSITION_VALUE,0);
+//            int clickPosition = intent.getIntExtra(INTENT_CLICK_POSITION_VALUE,0);
             if (lrcRecyclerView.getVisibility() == View.INVISIBLE) {
                 lrcRecyclerView.setVisibility(View.VISIBLE);
                 mCardView.setVisibility(View.GONE);
@@ -646,6 +671,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             setLrcLineList();
             setRecyclerView();
         }
+
     }
 
     private void renewToolBar(int position) {
@@ -673,7 +699,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             unbindService(serviceConnection);
             player.stopSelf();
         }
-        unregisterReceiver(lrcRecyclerViewBoarcCastReceiver);
+        unregisterReceiver(mLrcRecyclerViewBroadCastReceiver);
         unregisterReceiver(renewLrcBroadcastReceiver);
     }
 
@@ -725,5 +751,59 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         playNewIntent.putExtra(INTENT_MEDIA, mMusicList);
         playNewIntent.putExtra(MODE_INITIALIZE_OR_PLAY_NEW, 1);
         sendBroadcast(playNewIntent);
+    }
+
+    private void scrollToCenter(int position) {
+
+//        int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
+//        int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
+//        int lengthAll = lrcRecyclerView.getChildAt(lastItem).getTop();
+//        int lengthEach = (int) (lengthAll / (float)(lastItem - firstItem));
+//        int medium = (firstItem + lastItem);
+//        if (position <= firstItem) {
+//            lrcRecyclerView.smoothScrollToPosition(position);
+//            autoMove = true;
+//        } else if (position <= lastItem) {
+//            int top = lrcRecyclerView.getChildAt(position - firstItem).getTop();
+//            lrcRecyclerView.smoothScrollBy(0, top);
+//        } else {
+//            lrcRecyclerView.smoothScrollToPosition(position);
+//            autoMove = true;
+//        }
+//        lrcRecyclerView.smoothScrollBy(0,(position - medium) * lengthEach);
+    }
+
+    class RecyclerViewListener extends RecyclerView.OnScrollListener {
+        public RecyclerViewListener() {
+            super();
+        }
+
+        @Override
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+//            if (autoMove && newState == RecyclerView.SCROLL_STATE_IDLE) {
+//                autoMove = false;
+//                int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
+//                int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
+//                int medium = (firstItem + lastItem) / 2;
+//                int delta = -(lrcRecyclerView.getChildAt(medium).getTop() - lrcRecyclerView
+//                        .getChildAt(nowLrcPosition).getTop());
+//                lrcRecyclerView.smoothScrollBy(0, delta);
+//            }
+        }
+
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+//            if (autoMove) {
+//                autoMove = false;
+//                int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
+//                int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
+//                int medium = (firstItem + lastItem) / 2;
+//                int delta = lrcRecyclerView.getChildAt(medium).getTop() - lrcRecyclerView
+//                        .getChildAt(nowLrcPosition).getTop();
+//                lrcRecyclerView.smoothScrollBy(0, delta);
+//            }
+        }
     }
 }
