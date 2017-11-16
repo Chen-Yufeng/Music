@@ -23,7 +23,6 @@ import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -41,6 +40,7 @@ import com.ifchan.music.entity.LrcLine;
 import com.ifchan.music.entity.Music;
 import com.ifchan.music.helper.DataBaseHelper;
 import com.ifchan.music.helper.LrcHelper;
+import com.ifchan.music.manager.CenterLayoutManager;
 import com.ifchan.music.service.MediaPlayerService;
 
 import java.io.File;
@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     private ImageView mPointer;
     private ImageView mDisk;
     private RecyclerView lrcRecyclerView;
-    private LinearLayoutManager mLinearLayoutManager;
+    private CenterLayoutManager mCenterLayoutManager;
     private LrcRecyclerViewAdapter lrcListAdapter;
     private boolean autoMove = false;
     ViewPager pager;
@@ -116,13 +116,14 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                     }
                 } else if (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
                     if (nowLrcPosition > 0) {
-                        while (nowLrcPosition > 0 && mLrcLineList.get(nowLrcPosition)
-                                .getMillisecond() > lrcTime) {
+                        while (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
                             nowLrcPosition--;
                         }
                     }
                 }
-                scrollToCenter(nowLrcPosition);
+                lrcListAdapter.setCurrentMax(nowLrcPosition);
+                lrcRecyclerView.smoothScrollToPosition(nowLrcPosition);
+//                scrollToCenter(nowLrcPosition);
             }
         }
     };
@@ -429,7 +430,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager
         View page3 = layoutInflater.inflate(R.layout.page3, null);
         mPointer = page2.findViewById(R.id.pointer);
         lrcRecyclerView = page2.findViewById(R.id.lrc_recycler_view);
-        lrcRecyclerView.addOnScrollListener(new RecyclerViewListener());
         mDisk = page2.findViewById(R.id.disk);
         mCardView = page2.findViewById(R.id.disk_album_pic);
         lrcRecyclerView.setVisibility(View.INVISIBLE);
@@ -450,8 +450,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
             }
         });
 
-        mLinearLayoutManager = new LinearLayoutManager(this);
-        lrcRecyclerView.setLayoutManager(mLinearLayoutManager);
+        mCenterLayoutManager = new CenterLayoutManager(this);
+        lrcRecyclerView.setLayoutManager(mCenterLayoutManager);
         lrcListAdapter = new LrcRecyclerViewAdapter(MainActivity.this, originalLrcList);
         lrcRecyclerView.setAdapter(lrcListAdapter);
         // TODO: 11/16/17 handle conflict!
@@ -755,8 +755,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private void scrollToCenter(int position) {
 
-//        int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
-//        int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
+//        int firstItem = mCenterLayoutManager.findFirstVisibleItemPosition();
+//        int lastItem = mCenterLayoutManager.findLastVisibleItemPosition();
 //        int lengthAll = lrcRecyclerView.getChildAt(lastItem).getTop();
 //        int lengthEach = (int) (lengthAll / (float)(lastItem - firstItem));
 //        int medium = (firstItem + lastItem);
@@ -771,39 +771,5 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 //            autoMove = true;
 //        }
 //        lrcRecyclerView.smoothScrollBy(0,(position - medium) * lengthEach);
-    }
-
-    class RecyclerViewListener extends RecyclerView.OnScrollListener {
-        public RecyclerViewListener() {
-            super();
-        }
-
-        @Override
-        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-            super.onScrollStateChanged(recyclerView, newState);
-//            if (autoMove && newState == RecyclerView.SCROLL_STATE_IDLE) {
-//                autoMove = false;
-//                int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
-//                int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
-//                int medium = (firstItem + lastItem) / 2;
-//                int delta = -(lrcRecyclerView.getChildAt(medium).getTop() - lrcRecyclerView
-//                        .getChildAt(nowLrcPosition).getTop());
-//                lrcRecyclerView.smoothScrollBy(0, delta);
-//            }
-        }
-
-        @Override
-        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-            super.onScrolled(recyclerView, dx, dy);
-//            if (autoMove) {
-//                autoMove = false;
-//                int firstItem = mLinearLayoutManager.findFirstVisibleItemPosition();
-//                int lastItem = mLinearLayoutManager.findLastVisibleItemPosition();
-//                int medium = (firstItem + lastItem) / 2;
-//                int delta = lrcRecyclerView.getChildAt(medium).getTop() - lrcRecyclerView
-//                        .getChildAt(nowLrcPosition).getTop();
-//                lrcRecyclerView.smoothScrollBy(0, delta);
-//            }
-        }
     }
 }

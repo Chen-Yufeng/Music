@@ -2,6 +2,7 @@ package com.ifchan.music.adapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,18 +18,19 @@ import java.util.List;
  * Created by daily on 11/16/17.
  */
 
-public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerViewAdapter.ViewHolder>{
+public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerViewAdapter
+        .ViewHolder> {
     public static final String INTENT_CLICK_POSITION = "INTENT_CLICK_POSITION";
     public static final String INTENT_CLICK_POSITION_VALUE = "INTENT_CLICK_POSITION_VALUE";
     private List<LrcLine> mLrcLineList;
     private int currentMax = -1;
+    private boolean changeHighlight = false;
     private Context mContext;
 
     public LrcRecyclerViewAdapter(Context context, List<LrcLine> lrcLines) {
         mLrcLineList = lrcLines;
         mContext = context;
     }
-
 
 
     @Override
@@ -40,7 +42,7 @@ public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerView
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(INTENT_CLICK_POSITION);
-                intent.putExtra(INTENT_CLICK_POSITION_VALUE,holder.getAdapterPosition());
+                intent.putExtra(INTENT_CLICK_POSITION_VALUE, holder.getAdapterPosition());
                 mContext.sendBroadcast(intent);
             }
         });
@@ -51,6 +53,10 @@ public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerView
     public void onBindViewHolder(ViewHolder holder, int position) {
         if (position == currentMax) {
             holder.lrcTextView.setTextSize(20);
+            holder.lrcTextView.setTextColor(0xFFFFFF00);
+        } else {
+            holder.lrcTextView.setTextSize(16);
+            holder.lrcTextView.setTextColor(0xFFFFFFFF);
         }
         holder.lrcTextView.setText(mLrcLineList.get(position).getLrcText());
     }
@@ -70,7 +76,16 @@ public class LrcRecyclerViewAdapter extends RecyclerView.Adapter<LrcRecyclerView
     }
 
     public void setCurrentMax(int currentMax) {
-        this.currentMax = currentMax;
+        if (this.currentMax != currentMax) {
+            changeHighlight = true;
+        }
+        if (changeHighlight) {
+            changeHighlight = false;
+            int temp = this.currentMax;
+            this.currentMax = currentMax;
+            notifyItemChanged(temp);
+            notifyItemChanged(currentMax);
+        }
     }
 
     public void setLrcLineList(List<LrcLine> lrcLineList) {
