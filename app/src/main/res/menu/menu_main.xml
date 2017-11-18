@@ -24,4 +24,11 @@
         android:title="clear"
         app:showAsAction="ifRoom"/>
 
+    <item
+        android:id="@+id/menu_add_music_from_internet"
+        android:orderInCategory="70"
+        android:icon="@drawable/api"
+        android:title="internet"
+        app:showAsAction="ifRoom"/>
+
 </menu>

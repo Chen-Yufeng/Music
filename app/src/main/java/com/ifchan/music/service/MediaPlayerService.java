@@ -37,6 +37,9 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
 
     public static final String MODE_INITIALIZE_OR_PLAY_NEW = "MODE_INITIALIZE_OR_PLAY_NEW";
     public static final String INTENT_RENEW_MAIN_ACTIVITY_LRC = "INTENT_RENEW_MAIN_ACTIVITY_LRC";
+    private static final String INTENT_NOTIFY_UI = "INTENT_NOTIFY_UI";
+    private static final String INTENT_NOTIFY_UI_CASE = "INTENT_NOTIFY_UI_CASE";
+    public static final String INTENT_NOTIFY_MUSIC_CHANGED = "INTENT_NOTIFY_MUSIC_CHANGED";
     private final String TAG = "@vir MediaPlayerService";
     public static final String ACTION_PLAY = "com.valdioveliu.valdio.audioplayer.ACTION_PLAY";
     public static final String ACTION_PAUSE = "com.valdioveliu.valdio.audioplayer.ACTION_PAUSE";
@@ -203,6 +206,7 @@ public class MediaPlayerService extends Service implements MediaPlayer.OnComplet
 //        stopSelf();
         }
         Intent intent = new Intent(INTENT_RENEW_MAIN_ACTIVITY_LRC);
+        intent.putExtra(INTENT_NOTIFY_MUSIC_CHANGED,position);
         sendBroadcast(intent);
     }
 

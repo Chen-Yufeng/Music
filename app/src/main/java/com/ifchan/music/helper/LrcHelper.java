@@ -27,12 +27,18 @@ public class LrcHelper {
             while ((line = mBufferedReader.readLine()) != null) {
 //                Log.d(TAG, "getLrcList: "+lrcList.size());
                 if (line.substring(0, 4).equals("[ti:")) {
+                    if(line.equals("[ti:]"))
+                        continue;
                     title = line.substring(4, line.lastIndexOf(']'));
                 } else if (line.substring(0, 4).equals("[ar:")) {
+                    if(line.equals("[ar:]"))
+                        continue;
                     artist = line.substring(4, line.lastIndexOf(']'));
                 } else if (line.substring(0, 4).equals("[al:")) {
+                    if(line.equals("[al:]"))
+                        continue;
                     album = line.substring(4, line.lastIndexOf(']'));
-                } else {
+                } else if(line.lastIndexOf(']') == 9){
                     if(line.length()==10)
                         continue;
                     String startTime = line.substring(line.indexOf('[') + 1, line.lastIndexOf(']'));

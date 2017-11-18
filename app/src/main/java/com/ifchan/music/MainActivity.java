@@ -20,7 +20,6 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.CardView;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
@@ -64,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager
     public static final String INTENT_TO_MUSICLIST_ACTIVITY_MUSICLIST =
             "INTENT_TO_MUSICLIST_ACTIVITY_MUSICLIST";
     public final static String INTENT_MEDIA = "MEDIA";
+    public static final String INTENT_INTERNET_MUSIC = "INTENT_INTERNET_MUSIC";
     private final String TAG = "@vir MainActivity";
     private boolean isPlaying = false;
     private int nowPosition;
@@ -107,20 +107,26 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 int progress = (int) (msg.what * 10000.0 / player.getDurationInMilliseconds());
                 lrcTime = msg.what;
                 mSeekBar.setProgress(progress);
-                if (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
-                    if (nowLrcPosition < mLrcLineList.size() - 1) {
-                        while (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
-                            nowLrcPosition++;
-                        }
-                        nowLrcPosition--;
-                    }
-                } else if (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
-                    if (nowLrcPosition > 0) {
-                        while (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
+                if (nowLrcPosition < mLrcLineList.size())
+                    if (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
+                        if (nowLrcPosition < mLrcLineList.size() - 1) {
+                            while (mLrcLineList.get(nowLrcPosition).getMillisecond() < lrcTime) {
+                                nowLrcPosition++;
+                                if (nowLrcPosition == mLrcLineList.size()) {
+                                    break;
+                                }
+                            }
                             nowLrcPosition--;
                         }
+                    } else if (mLrcLineList.get(nowLrcPosition).getMillisecond() > lrcTime) {
+                        if (nowLrcPosition > 0) {
+                            while (nowLrcPosition >= 0 && mLrcLineList.get(nowLrcPosition)
+                                    .getMillisecond
+                                            () > lrcTime) {
+                                nowLrcPosition--;
+                            }
+                        }
                     }
-                }
                 lrcListAdapter.setCurrentMax(nowLrcPosition);
                 lrcRecyclerView.smoothScrollToPosition(nowLrcPosition);
 //                scrollToCenter(nowLrcPosition);
@@ -233,9 +239,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private void connectSeekBarAndHandle() {
         new Thread(new Runnable() {
+            int now = nowPosition;
+
             @Override
             public void run() {
-                while (true) {
+                while (now == nowPosition) {
                     if (player.myIsPlaying() && isPlaying) {
                         Message mMessage = new Message();
                         mMessage.what = player.getCurrentPosition();
@@ -299,14 +307,15 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private void playPrevious() {
         if (serviceBound) {
-            connectSeekBarAndHandle();
-            player.skipToPrevious();
-            isPlaying = true;
             if (nowPosition == 0) {
                 nowPosition = mMusicList.size() - 1;
             } else {
                 nowPosition--;
             }
+            nowLrcPosition = 0;
+            connectSeekBarAndHandle();
+            player.skipToPrevious();
+            isPlaying = true;
             renewToolBar(nowPosition);
             setLrcLineList();
             setRecyclerView();
@@ -315,14 +324,15 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
     private void playNext() {
         if (serviceBound) {
-            connectSeekBarAndHandle();
-            player.skipToNext();
-            isPlaying = true;
             if (nowPosition == mMusicList.size() - 1) {
                 nowPosition = 0;
             } else {
                 nowPosition++;
             }
+            nowLrcPosition = 0;
+            connectSeekBarAndHandle();
+            player.skipToNext();
+            isPlaying = true;
             renewToolBar(nowPosition);
             setLrcLineList();
             setRecyclerView();
@@ -404,6 +414,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager
                 break;
             case R.id.clear_data_base:
                 mDataBaseHelper.removeAllColumns(db);
+                break;
+            case R.id.menu_add_music_from_internet:
+                Intent intentToSearchInternetActivity = new Intent(MainActivity.this,
+                        SearchInternetActivity.class);
+                intentToSearchInternetActivity.putExtra(INTENT_INTERNET_MUSIC, mMusicList.get
+                        (nowPosition));
+                startActivity(intentToSearchInternetActivity);
                 break;
         }
 
@@ -668,8 +685,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            nowPosition = intent.getIntExtra(MediaPlayerService.INTENT_NOTIFY_MUSIC_CHANGED, 0);
+            nowLrcPosition = 0;
             setLrcLineList();
             setRecyclerView();
+            connectSeekBarAndHandle();
         }
 
     }
